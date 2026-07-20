@@ -36,6 +36,7 @@ import {
 } from './hooks/usePortState'
 import { SettingsDrawer } from './components/SettingsDrawer'
 import { ConfirmModal } from './components/ConfirmModal'
+import { UpdateController } from './components/UpdateController'
 
 const { Header, Content } = Layout
 const { Title } = Typography
@@ -238,6 +239,7 @@ function App(): React.JSX.Element {
 
   return (
     <ConfigProvider theme={{ algorithm }} locale={antdLocale}>
+      <UpdateController />
       <Layout style={{ minHeight: '100vh', background: bgLayout }}>
         <Header
           style={{

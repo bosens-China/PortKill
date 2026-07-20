@@ -1,8 +1,9 @@
 import React from 'react'
-import { Drawer, Select, Popconfirm, Button } from 'antd'
+import { Drawer, Select, Popconfirm, Button, Divider } from 'antd'
 import { ReloadOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { THEME_KEY, LANG_KEY } from '../hooks/usePortState'
+import { UpdateSettingsSection } from './UpdateSettingsSection'
 
 interface SettingsDrawerProps {
   open: boolean
@@ -59,6 +60,9 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
             <Select.Option value="en">English</Select.Option>
           </Select>
         </div>
+
+        <Divider style={{ margin: 0 }}>{t('updates')}</Divider>
+        <UpdateSettingsSection />
 
         <Popconfirm
           title={t('confirmRestoreTitle')}
