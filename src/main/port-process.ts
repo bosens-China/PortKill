@@ -134,7 +134,7 @@ export async function checkPorts(ports: number[]): Promise<PortScanResult> {
 
   try {
     if (process.platform === 'win32') {
-      const stdout = await execPromise('netstat -ano -p tcp')
+      const stdout = await execPromise('netstat -ano')
       const statuses = parseWindowsNetstat(stdout, watchedPorts)
       return { statuses: await enrichWindowsProcessNames(statuses) }
     }
