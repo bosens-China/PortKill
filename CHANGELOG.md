@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/bosens-China/PortKill/compare/v1.0.1...v1.1.0) (2026-07-20)
+
+
+### Features
+
+* 添加应用自动更新功能 ([6ef8242](https://github.com/bosens-China/PortKill/commit/6ef82424fa55eb190f4d7b9be37e6282396567ce))
+
 ## [1.0.1](https://github.com/bosens-China/PortKill/compare/v1.0.0...v1.0.1) (2026-07-20)
 
 
