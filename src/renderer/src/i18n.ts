@@ -19,6 +19,12 @@ const resources = {
       killingProcess: 'Killing process {{pid}}...',
       killedSuccess: 'Process {{pid}} killed successfully',
       failedToKill: 'Failed to kill: {{error}}',
+      permissionDenied: 'Permission denied. Try running PortKill with administrator privileges.',
+      processNotFound: 'The process no longer exists. Refreshing its status.',
+      forceRequiredWindows:
+        'Windows could not close this process gracefully. Use Force Kill if it is safe to do so.',
+      invalidProcessRequest: 'The process request was rejected as invalid.',
+      unknownError: 'Unknown error',
       error: 'Error: {{message}}',
       settings: 'Settings',
       theme: 'Theme',
@@ -28,7 +34,7 @@ const resources = {
       dark: 'Dark',
       confirmKillTitle: 'Confirm Kill Process',
       confirmKillContent: 'Are you sure you want to end process {{pid}} on port {{port}}?',
-      dontShowAgain: 'Don\'t show this again',
+      dontShowAgain: "Don't show this again",
       confirm: 'Confirm',
       cancel: 'Cancel',
       removeWatch: 'Remove Watch',
@@ -37,17 +43,32 @@ const resources = {
       portRemoved: 'Port {{port}} removed from watch list',
       restoreDefault: 'Restore Defaults',
       confirmRestoreTitle: 'Confirm Restore',
-      confirmRestoreContent: 'Are you sure you want to restore default ports? Custom watched ports will be lost.',
+      confirmRestoreContent:
+        'Are you sure you want to restore default ports? Custom watched ports will be lost.',
       restoreSuccess: 'Restored default watch list successfully',
       batchEnd: 'Batch End',
       batchForceKill: 'Batch Force Kill',
       batchRemove: 'Batch Remove',
       batchConfirmTitle: 'Confirm Batch Action',
-      batchConfirmContent: 'Are you sure you want to apply this action to {{count}} selected ports?',
+      batchConfirmContent:
+        'Are you sure you want to apply this action to {{count}} selected ports?',
+      batchKillingProcess: 'Ending {{count}} processes...',
+      batchKillSuccess: 'Successfully ended {{count}} processes',
+      batchKillFailed: 'Failed to end {{count}} processes: {{reason}}',
+      batchKillPartial:
+        'Ended {{successCount}} processes; {{failedCount}} processes could not be ended',
+      noActiveProcessesSelected: 'None of the selected ports have an active process.',
+      batchPortRemoved: 'Removed {{count}} ports from the watch list',
       filterAll: 'All Ports',
       filterActive: 'Active Only',
       filterInactive: 'Inactive Only',
-      totalItems: 'Total {{total}} items'
+      totalItems: 'Total {{total}} items',
+      lsofMissingTitle: 'Port scanning is unavailable',
+      lsofMissingDescription:
+        'PortKill requires lsof on Linux. Install it with your system package manager and refresh.',
+      scanFailedTitle: 'Port scan failed',
+      scanFailedDescription:
+        'Port status could not be read. Check system permissions and try refreshing.'
     }
   },
   zh: {
@@ -67,6 +88,11 @@ const resources = {
       killingProcess: '正在结束进程 {{pid}}...',
       killedSuccess: '进程 {{pid}} 已成功结束',
       failedToKill: '结束失败: {{error}}',
+      permissionDenied: '权限不足，请尝试以管理员权限运行 PortKill。',
+      processNotFound: '该进程已不存在，正在刷新端口状态。',
+      forceRequiredWindows: 'Windows 无法正常结束此进程，请确认安全后使用“强制结束”。',
+      invalidProcessRequest: '进程操作请求无效，已被拒绝。',
+      unknownError: '未知错误',
       error: '错误: {{message}}',
       settings: '设置',
       theme: '主题',
@@ -92,28 +118,35 @@ const resources = {
       batchRemove: '批量取消监听',
       batchConfirmTitle: '批量操作确认',
       batchConfirmContent: '确定要对选中的 {{count}} 个端口执行该操作吗？',
+      batchKillingProcess: '正在结束 {{count}} 个进程...',
+      batchKillSuccess: '已成功结束 {{count}} 个进程',
+      batchKillFailed: '{{count}} 个进程结束失败：{{reason}}',
+      batchKillPartial: '已结束 {{successCount}} 个进程，另有 {{failedCount}} 个进程失败',
+      noActiveProcessesSelected: '选中的端口中没有正在运行的进程。',
+      batchPortRemoved: '已从监听列表移除 {{count}} 个端口',
       filterAll: '全部端口',
       filterActive: '已被占用',
       filterInactive: '未被占用',
-      totalItems: '共 {{total}} 项'
+      totalItems: '共 {{total}} 项',
+      lsofMissingTitle: '无法扫描端口',
+      lsofMissingDescription: 'Linux 上需要安装 lsof，请通过系统包管理器安装后刷新。',
+      scanFailedTitle: '端口扫描失败',
+      scanFailedDescription: '无法读取端口状态，请检查系统权限后重试。'
     }
   }
 }
 
 const savedLang = localStorage.getItem('portkill_language') || 'auto'
-const defaultLang = savedLang === 'auto' 
-  ? (navigator.language.startsWith('zh') ? 'zh' : 'en') 
-  : savedLang
+const defaultLang =
+  savedLang === 'auto' ? (navigator.language.startsWith('zh') ? 'zh' : 'en') : savedLang
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources,
-    lng: defaultLang,
-    fallbackLng: 'en',
-    interpolation: {
-      escapeValue: false
-    }
-  })
+i18n.use(initReactI18next).init({
+  resources,
+  lng: defaultLang,
+  fallbackLng: 'en',
+  interpolation: {
+    escapeValue: false
+  }
+})
 
 export default i18n

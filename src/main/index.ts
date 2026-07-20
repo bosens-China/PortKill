@@ -1,8 +1,8 @@
 import { app, shell, BrowserWindow, ipcMain, Tray, Menu, nativeImage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import { exec } from 'child_process'
 import icon from '../../resources/icon.png?asset'
+import { checkPorts, killProcess } from './port-process'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -32,7 +32,10 @@ function createWindow(): void {
       event.preventDefault()
       mainWindow?.hide()
     }
-    return false
+  })
+
+  mainWindow.on('closed', () => {
+    mainWindow = null
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -49,7 +52,7 @@ function createWindow(): void {
   }
 }
 
-function createTray() {
+function createTray(): void {
   const trayIcon = nativeImage.createFromPath(icon).resize({ width: 16, height: 16 })
   tray = new Tray(trayIcon)
   const contextMenu = Menu.buildFromTemplate([
@@ -72,6 +75,27 @@ app.on('before-quit', () => {
   isQuitting = true
 })
 
+function validatePorts(value: unknown): number[] {
+  if (!Array.isArray(value) || value.length > 1000) {
+    throw new Error('INVALID_PORTS')
+  }
+
+  const ports = value.filter(
+    (port): port is number =>
+      typeof port === 'number' && Number.isInteger(port) && port > 0 && port <= 65535
+  )
+
+  if (ports.length !== value.length) throw new Error('INVALID_PORTS')
+  return [...new Set(ports)]
+}
+
+function validateKillRequest(pid: unknown, force: unknown): { pid: number; force: boolean } {
+  if (typeof pid !== 'number' || !Number.isInteger(pid) || pid <= 0 || typeof force !== 'boolean') {
+    throw new Error('INVALID_KILL_REQUEST')
+  }
+  return { pid, force }
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
@@ -84,19 +108,25 @@ app.whenReady().then(() => {
   })
 
   // IPC handlers
-  ipcMain.handle('get-port-status', async (_, ports: number[]) => {
-    return await checkPorts(ports)
+  ipcMain.handle('get-port-status', async (_, ports: unknown) => {
+    return await checkPorts(validatePorts(ports))
   })
 
-  ipcMain.handle('kill-process', async (_, pid: number, force: boolean) => {
-    return await killProcess(pid, force)
+  ipcMain.handle('kill-process', async (_, pid: unknown, force: unknown) => {
+    const request = validateKillRequest(pid, force)
+    return await killProcess(request.pid, request.force)
   })
 
   createWindow()
   createTray()
 
   app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      createWindow()
+      return
+    }
+    mainWindow.show()
+    mainWindow.focus()
   })
 })
 
@@ -105,94 +135,3 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-
-// Process Logic
-interface PortStatus {
-  port: number
-  pid: number
-  name: string
-}
-
-function execPromise(command: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    exec(command, (error, stdout) => {
-      if (error) {
-        reject(error)
-        return
-      }
-      resolve(stdout)
-    })
-  })
-}
-
-async function checkPorts(ports: number[]): Promise<PortStatus[]> {
-  const result: PortStatus[] = []
-
-  for (const port of ports) {
-    try {
-      if (process.platform === 'win32') {
-        const cmd = `netstat -ano | findstr :${port}`
-        const stdout = await execPromise(cmd)
-        const lines = stdout.split('\n')
-        for (const line of lines) {
-          if (line.includes('LISTENING')) {
-            const parts = line.trim().split(/\s+/)
-            const pidStr = parts[parts.length - 1]
-            const pid = parseInt(pidStr, 10)
-            if (!isNaN(pid)) {
-              try {
-                const taskListCmd = `tasklist /FI "PID eq ${pid}" /NH`
-                const taskListOut = await execPromise(taskListCmd)
-                const nameMatch = taskListOut.trim().split(/\s+/)
-                const name = nameMatch[0] || 'Unknown'
-                result.push({ port, pid, name })
-                break
-              } catch (e) {
-                result.push({ port, pid, name: 'Unknown' })
-                break
-              }
-            }
-          }
-        }
-      } else {
-        const cmd = `lsof -i :${port} -sTCP:LISTEN -P -n`
-        try {
-          const stdout = await execPromise(cmd)
-          const lines = stdout.trim().split('\n')
-          if (lines.length > 1) {
-            const parts = lines[1].trim().split(/\s+/)
-            const name = parts[0]
-            const pid = parseInt(parts[1], 10)
-            if (!isNaN(pid)) {
-              result.push({ port, pid, name })
-            }
-          }
-        } catch (e) {
-          // ignore error if nothing found
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-  }
-
-  return result
-}
-
-async function killProcess(
-  pid: number,
-  force: boolean
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    if (process.platform === 'win32') {
-      const flag = force ? '/F' : ''
-      await execPromise(`taskkill ${flag} /PID ${pid}`)
-    } else {
-      const signal = force ? '-9' : '-15'
-      await execPromise(`kill ${signal} ${pid}`)
-    }
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message || String(error) }
-  }
-}

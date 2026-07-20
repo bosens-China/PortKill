@@ -2,7 +2,7 @@ import React from 'react'
 import { Modal, Checkbox, Space } from 'antd'
 import { ExclamationCircleFilled } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
-import { DisplayPortStatus, ConfirmAction, SKIP_CONFIRM_KEY } from '../hooks/usePortState'
+import type { ConfirmAction, DisplayPortStatus } from '../hooks/usePortState'
 
 interface ConfirmModalProps {
   config: {
@@ -12,7 +12,7 @@ interface ConfirmModalProps {
     actionType: ConfirmAction
   }
   skipConfirm: boolean
-  setSkipConfirm: (val: boolean) => void
+  onSkipConfirmChange: (value: boolean) => void
   onConfirm: () => void
   onCancel: () => void
   selectedCount: number
@@ -21,7 +21,7 @@ interface ConfirmModalProps {
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   config,
   skipConfirm,
-  setSkipConfirm,
+  onSkipConfirmChange,
   onConfirm,
   onCancel,
   selectedCount
@@ -34,9 +34,11 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <Space>
           <ExclamationCircleFilled style={{ color: '#faad14' }} />
           <span>
-            {config.actionType === 'kill' ? t('confirmKillTitle') : 
-             config.actionType === 'unwatch' ? t('confirmUnwatchTitle') : 
-             t('batchConfirmTitle')}
+            {config.actionType === 'kill'
+              ? t('confirmKillTitle')
+              : config.actionType === 'unwatch'
+                ? t('confirmUnwatchTitle')
+                : t('batchConfirmTitle')}
           </span>
         </Space>
       }
@@ -45,20 +47,23 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       onCancel={onCancel}
       okText={t('confirm')}
       cancelText={t('cancel')}
-      okButtonProps={{ danger: config.force || config.actionType === 'kill' || config.actionType === 'batchKill' }}
+      okButtonProps={{
+        danger: config.force || config.actionType === 'kill' || config.actionType === 'batchKill'
+      }}
     >
       <div style={{ padding: '10px 0 20px 0' }}>
-        {config.actionType === 'kill' && config.record && t('confirmKillContent', { pid: config.record.pid, port: config.record.port })}
-        {config.actionType === 'unwatch' && config.record && t('confirmUnwatchContent', { port: config.record.port })}
-        {(config.actionType === 'batchKill' || config.actionType === 'batchUnwatch') && t('batchConfirmContent', { count: selectedCount })}
+        {config.actionType === 'kill' &&
+          config.record &&
+          t('confirmKillContent', { pid: config.record.pid, port: config.record.port })}
+        {config.actionType === 'unwatch' &&
+          config.record &&
+          t('confirmUnwatchContent', { port: config.record.port })}
+        {(config.actionType === 'batchKill' || config.actionType === 'batchUnwatch') &&
+          t('batchConfirmContent', { count: selectedCount })}
       </div>
       <Checkbox
         checked={skipConfirm}
-        onChange={(e) => {
-          const checked = e.target.checked
-          setSkipConfirm(checked)
-          localStorage.setItem(SKIP_CONFIRM_KEY, String(checked))
-        }}
+        onChange={(event) => onSkipConfirmChange(event.target.checked)}
       >
         {t('dontShowAgain')}
       </Checkbox>

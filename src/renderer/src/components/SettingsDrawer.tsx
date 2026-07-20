@@ -25,12 +25,12 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
 }) => {
   const { t, i18n } = useTranslation()
 
-  const handleThemeChange = (val: 'auto' | 'light' | 'dark') => {
+  const handleThemeChange = (val: 'auto' | 'light' | 'dark'): void => {
     setAppTheme(val)
     localStorage.setItem(THEME_KEY, val)
   }
 
-  const handleLangChange = (val: 'auto' | 'zh' | 'en') => {
+  const handleLangChange = (val: 'auto' | 'zh' | 'en'): void => {
     setAppLang(val)
     localStorage.setItem(LANG_KEY, val)
     if (val === 'auto') {
@@ -59,7 +59,7 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
             <Select.Option value="en">English</Select.Option>
           </Select>
         </div>
-        
+
         <Popconfirm
           title={t('confirmRestoreTitle')}
           description={t('confirmRestoreContent')}
