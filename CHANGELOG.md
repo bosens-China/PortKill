@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/bosens-China/PortKill/compare/v1.1.0...v1.2.0) (2026-07-20)
+
+
+### Features
+
+* 在设置中添加 GitHub 仓库入口 ([2ae5511](https://github.com/bosens-China/PortKill/commit/2ae551193de67b59a8f0683216084ccdc282482c))
+
+
+### Bug Fixes
+
+* 修复 Windows IPv6 端口扫描 ([0722485](https://github.com/bosens-China/PortKill/commit/0722485a7be07b61ab89c1b16b7b5052df47ee47))
+
 ## [1.1.0](https://github.com/bosens-China/PortKill/compare/v1.0.1...v1.1.0) (2026-07-20)
 
 
