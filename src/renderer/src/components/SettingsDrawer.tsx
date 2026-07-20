@@ -1,6 +1,6 @@
 import React from 'react'
 import { Drawer, Select, Popconfirm, Button, Divider } from 'antd'
-import { ReloadOutlined } from '@ant-design/icons'
+import { GithubOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { THEME_KEY, LANG_KEY } from '../hooks/usePortState'
 import { UpdateSettingsSection } from './UpdateSettingsSection'
@@ -63,6 +63,14 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
 
         <Divider style={{ margin: 0 }}>{t('updates')}</Divider>
         <UpdateSettingsSection />
+
+        <Button
+          href="https://github.com/bosens-China/PortKill"
+          target="_blank"
+          icon={<GithubOutlined />}
+        >
+          {t('githubRepository')}
+        </Button>
 
         <Popconfirm
           title={t('confirmRestoreTitle')}
