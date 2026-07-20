@@ -52,5 +52,8 @@ appImage:
 npmRebuild: false
 publish:
   provider: github
+  owner: bosens-China
+  repo: PortKill
+  releaseType: release
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

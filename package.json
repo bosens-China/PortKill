@@ -5,7 +5,7 @@
   "description": "A modern and elegant tool to monitor and forcefully kill system ports.",
   "main": "./out/main/index.js",
   "author": "yliu",
-  "homepage": "https://github.com/yliu/PortKill",
+  "homepage": "https://github.com/bosens-China/PortKill",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
