@@ -21,12 +21,14 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
-  identity: null
+  identity: '-'
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   notarize: false
-  artifactName: ${name}-${version}-unsigned-${arch}.${ext}
+  artifactName: ${name}-${version}-${arch}.${ext}
 dmg:
-  artifactName: ${name}-${version}-unsigned-${arch}.${ext}
+  artifactName: ${name}-${version}-${arch}.${ext}
 linux:
   target:
     - AppImage
