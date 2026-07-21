@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/bosens-China/PortKill/compare/v1.2.0...v1.2.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* 等待进程退出后刷新端口状态 ([4c1ffaf](https://github.com/bosens-China/PortKill/commit/4c1ffaf8734acd44ac7848eb58bbed46573aea7c))
+
 ## [1.2.0](https://github.com/bosens-China/PortKill/compare/v1.1.0...v1.2.0) (2026-07-20)
 
 
