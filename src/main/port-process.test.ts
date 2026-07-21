@@ -1,5 +1,15 @@
-import { describe, expect, it } from 'vitest'
-import { classifyKillError, parseLsof, parseWindowsNetstat } from './port-process'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  classifyKillError,
+  parseLsof,
+  parseWindowsNetstat,
+  waitForProcessExit
+} from './port-process'
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+})
 
 describe('parseWindowsNetstat', () => {
   it('matches exact watched ports instead of substrings', () => {
@@ -55,5 +65,25 @@ describe('classifyKillError', () => {
     expect(
       classifyKillError('This process can only be terminated forcefully', false, 'win32')
     ).toBe('FORCE_REQUIRED')
+  })
+})
+
+describe('waitForProcessExit', () => {
+  it('resolves only after the process no longer exists', async () => {
+    vi.useFakeTimers()
+    const missingProcess = Object.assign(new Error('kill ESRCH'), { code: 'ESRCH' })
+    const kill = vi
+      .spyOn(process, 'kill')
+      .mockReturnValueOnce(true)
+      .mockImplementationOnce(() => {
+        throw missingProcess
+      })
+
+    const waiting = waitForProcessExit(3009)
+    await vi.advanceTimersByTimeAsync(100)
+
+    await expect(waiting).resolves.toBeUndefined()
+    expect(kill).toHaveBeenNthCalledWith(1, 3009, 0)
+    expect(kill).toHaveBeenNthCalledWith(2, 3009, 0)
   })
 })

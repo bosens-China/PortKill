@@ -10,6 +10,9 @@ interface CommandError extends ExecException {
   stderr?: string
 }
 
+const PROCESS_EXIT_TIMEOUT_MS = 3000
+const PROCESS_EXIT_POLL_INTERVAL_MS = 100
+
 function execPromise(command: string): Promise<string> {
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
@@ -191,6 +194,30 @@ export function classifyKillError(
   return 'KILL_FAILED'
 }
 
+function isProcessRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ESRCH') return false
+    throw error
+  }
+}
+
+export async function waitForProcessExit(
+  pid: number,
+  timeoutMs = PROCESS_EXIT_TIMEOUT_MS
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+
+  while (isProcessRunning(pid)) {
+    if (Date.now() >= deadline) {
+      throw new Error(`Process ${pid} did not exit within ${timeoutMs}ms`)
+    }
+    await new Promise<void>((resolve) => setTimeout(resolve, PROCESS_EXIT_POLL_INTERVAL_MS))
+  }
+}
+
 export async function killProcess(pid: number, force: boolean): Promise<ProcessActionResult> {
   try {
     if (process.platform === 'win32') {
@@ -198,6 +225,7 @@ export async function killProcess(pid: number, force: boolean): Promise<ProcessA
     } else {
       await execPromise(`kill ${force ? '-9' : '-15'} ${pid}`)
     }
+    await waitForProcessExit(pid)
     return { success: true }
   } catch (error) {
     return {
