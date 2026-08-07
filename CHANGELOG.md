@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/bosens-China/PortKill/compare/v1.2.1...v1.3.0) (2026-08-07)
+
+
+### Features
+
+* 明确端口查询方式 ([4bec47b](https://github.com/bosens-China/PortKill/commit/4bec47bb7e586a7f5baf89d9bbc60035df600006))
+
 ## [1.2.1](https://github.com/bosens-China/PortKill/compare/v1.2.0...v1.2.1) (2026-07-21)
 
 
