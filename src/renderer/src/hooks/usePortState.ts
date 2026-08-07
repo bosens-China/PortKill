@@ -13,6 +13,7 @@ export const SKIP_KILL_CONFIRM_KEY = 'portkill_skip_kill_confirm'
 export const SKIP_UNWATCH_CONFIRM_KEY = 'portkill_skip_unwatch_confirm'
 export const THEME_KEY = 'portkill_theme'
 export const LANG_KEY = 'portkill_language'
+export const PAGE_SIZE_KEY = 'portkill_page_size'
 
 export type DisplayPortStatus = {
   port: number

@@ -8,6 +8,7 @@ import {
   Select,
   Space,
   Table,
+  Tag,
   theme,
   Tooltip,
   Typography,
@@ -28,6 +29,7 @@ import enUS from 'antd/locale/en_US'
 import {
   LANG_KEY,
   LEGACY_SKIP_CONFIRM_KEY,
+  PAGE_SIZE_KEY,
   SKIP_KILL_CONFIRM_KEY,
   SKIP_UNWATCH_CONFIRM_KEY,
   THEME_KEY,
@@ -78,6 +80,17 @@ function App(): React.JSX.Element {
 
   const [searchVal, setSearchVal] = useState('')
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
+
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const saved = localStorage.getItem(PAGE_SIZE_KEY)
+    const parsed = saved ? parseInt(saved, 10) : 10
+    return [10, 20, 50, 100].includes(parsed) ? parsed : 10
+  })
+  const [currentPage, setCurrentPage] = useState<number>(1)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchVal, filterStatus])
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [appTheme, setAppTheme] = useState<AppTheme>(
@@ -318,42 +331,102 @@ function App(): React.JSX.Element {
               }
             />
           )}
-          <Space size={6} style={{ marginBottom: 12 }}>
-            <InfoCircleOutlined />
-            <Typography.Text type="secondary">{t('searchHint')}</Typography.Text>
-          </Space>
           <div
             style={{
               marginBottom: 16,
               display: 'flex',
-              justifyContent: 'flex-end',
-              gap: 10,
-              visibility: selectedRowKeys.length > 0 ? 'visible' : 'hidden',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               minHeight: 32
             }}
           >
-            <Button
-              type="primary"
-              icon={<StopOutlined />}
-              onClick={() => requestBatchAction(false, 'batchKill')}
-            >
-              {t('batchEnd')}
-            </Button>
-            <Button
-              type="primary"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => requestBatchAction(true, 'batchKill')}
-            >
-              {t('batchForceKill')}
-            </Button>
-            <Button
-              type="dashed"
-              icon={<EyeInvisibleOutlined />}
-              onClick={() => requestBatchAction(false, 'batchUnwatch')}
-            >
-              {t('batchRemove')}
-            </Button>
+            <div>
+              {selectedRowKeys.length > 0 ? (
+                <Space align="center">
+                  <Typography.Text style={{ color: isDark ? '#fff' : '#000', fontWeight: 500 }}>
+                    {t('selectedCount', { count: selectedRowKeys.length })}
+                  </Typography.Text>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => setSelectedRowKeys([])}
+                    style={{ padding: 0 }}
+                  >
+                    {t('clearSelection')}
+                  </Button>
+                </Space>
+              ) : (
+                <Space size={8}>
+                  <Tag color="default">{t('totalItems', { total: displayedPorts.length })}</Tag>
+                  {allPorts.filter((p) => p.active).length > 0 ? (
+                    <Tooltip
+                      title={
+                        <div style={{ padding: '2px 4px' }}>
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                            {t('activePortsDetail')}:
+                          </div>
+                          {allPorts
+                            .filter((p) => p.active)
+                            .map((p) => (
+                              <div key={p.port} style={{ fontSize: 12, lineHeight: 1.5 }}>
+                                <span style={{ fontWeight: 600 }}>{p.port}</span>
+                                {p.name ? ` (${p.name}${p.pid ? `, PID: ${p.pid}` : ''})` : ''}
+                              </div>
+                            ))}
+                        </div>
+                      }
+                    >
+                      <Tag color="processing" style={{ cursor: 'pointer' }}>
+                        {t('filterActive')}: {allPorts.filter((p) => p.active).length}
+                      </Tag>
+                    </Tooltip>
+                  ) : (
+                    <Tag color="processing">
+                      {t('filterActive')}: 0
+                    </Tag>
+                  )}
+                  <Tag color="default">
+                    {t('filterInactive')}: {allPorts.filter((p) => !p.active).length}
+                  </Tag>
+                </Space>
+              )}
+            </div>
+            <Space>
+              <Tooltip title={selectedRowKeys.length === 0 ? t('selectRequiredHint') : ''}>
+                <Button
+                  type="primary"
+                  disabled={selectedRowKeys.length === 0}
+                  icon={<StopOutlined />}
+                  onClick={() => requestBatchAction(false, 'batchKill')}
+                >
+                  {t('batchEnd')}{' '}
+                  {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
+                </Button>
+              </Tooltip>
+              <Tooltip title={selectedRowKeys.length === 0 ? t('selectRequiredHint') : ''}>
+                <Button
+                  type="primary"
+                  danger
+                  disabled={selectedRowKeys.length === 0}
+                  icon={<DeleteOutlined />}
+                  onClick={() => requestBatchAction(true, 'batchKill')}
+                >
+                  {t('batchForceKill')}{' '}
+                  {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
+                </Button>
+              </Tooltip>
+              <Tooltip title={selectedRowKeys.length === 0 ? t('selectRequiredHint') : ''}>
+                <Button
+                  type="dashed"
+                  disabled={selectedRowKeys.length === 0}
+                  icon={<EyeInvisibleOutlined />}
+                  onClick={() => requestBatchAction(false, 'batchUnwatch')}
+                >
+                  {t('batchRemove')}{' '}
+                  {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
+                </Button>
+              </Tooltip>
+            </Space>
           </div>
           <Table
             rowSelection={rowSelection}
@@ -361,11 +434,19 @@ function App(): React.JSX.Element {
             columns={columns}
             rowKey="port"
             pagination={{
+              current: currentPage,
+              pageSize,
               position: ['bottomRight'],
-              defaultPageSize: 10,
               showSizeChanger: true,
               pageSizeOptions: ['10', '20', '50', '100'],
-              showTotal: (total) => t('totalItems', { total })
+              showTotal: (total) => t('totalItems', { total }),
+              onChange: (page, newPageSize) => {
+                setCurrentPage(page)
+                if (newPageSize !== pageSize) {
+                  setPageSize(newPageSize)
+                  localStorage.setItem(PAGE_SIZE_KEY, newPageSize.toString())
+                }
+              }
             }}
             scroll={{ y: `calc(100vh - ${295 + (scanErrorCode ? 56 : 0)}px)` }}
             locale={{ emptyText: t('emptyText') }}
