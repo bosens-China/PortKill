@@ -241,44 +241,66 @@ function App(): React.JSX.Element {
   return (
     <ConfigProvider theme={{ algorithm }} locale={antdLocale}>
       <UpdateController />
-      <Layout style={{ minHeight: '100vh', background: bgLayout }}>
+      <Layout style={{ height: '100vh', overflow: 'hidden', background: bgLayout }}>
         <Header
           style={{
             background: bgHeader,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 20px',
+            flexDirection: 'column',
+            padding: '16px 20px 12px 20px',
+            height: 'auto',
+            lineHeight: 1.4,
             borderBottom: isDark ? '1px solid #303030' : '1px solid #f0f0f0'
           }}
         >
-          <Title level={4} style={{ color: isDark ? '#fff' : '#000', margin: 0 }}>
-            {t('appName')}
-          </Title>
-          <Space>
-            <Select value={filterStatus} onChange={setFilterStatus} style={{ width: 120 }}>
-              <Select.Option value="all">{t('filterAll')}</Select.Option>
-              <Select.Option value="active">{t('filterActive')}</Select.Option>
-              <Select.Option value="inactive">{t('filterInactive')}</Select.Option>
-            </Select>
-            <Input.Search
-              placeholder={t('searchPlaceholder')}
-              value={searchVal}
-              onChange={(e) => setSearchVal(e.target.value)}
-              onSearch={handleAddWatch}
-              style={{ width: 200 }}
-              allowClear
-            />
-            <Button icon={<SyncOutlined spin={loading} />} onClick={fetchStatus} type="primary">
-              {t('refresh')}
-            </Button>
-            <Button
-              icon={<SettingOutlined />}
-              type="text"
-              onClick={() => setSettingsOpen(true)}
-              style={{ color: isDark ? '#fff' : '#000' }}
-            />
-          </Space>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%'
+            }}
+          >
+            <Title level={4} style={{ color: isDark ? '#fff' : '#000', margin: 0 }}>
+              {t('appName')}
+            </Title>
+            <Space>
+              <Select value={filterStatus} onChange={setFilterStatus} style={{ width: 120 }}>
+                <Select.Option value="all">{t('filterAll')}</Select.Option>
+                <Select.Option value="active">{t('filterActive')}</Select.Option>
+                <Select.Option value="inactive">{t('filterInactive')}</Select.Option>
+              </Select>
+              <Input.Search
+                placeholder={t('searchPlaceholder')}
+                value={searchVal}
+                onChange={(e) => setSearchVal(e.target.value)}
+                onSearch={handleAddWatch}
+                style={{ width: 200 }}
+                allowClear
+              />
+              <Button icon={<SyncOutlined spin={loading} />} onClick={fetchStatus} type="primary">
+                {t('refresh')}
+              </Button>
+              <Button
+                icon={<SettingOutlined />}
+                type="text"
+                onClick={() => setSettingsOpen(true)}
+                style={{ color: isDark ? '#fff' : '#000' }}
+              />
+            </Space>
+          </div>
+          <div style={{ marginTop: 8, width: '100%' }}>
+            <Space
+              style={{
+                color: isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.45)',
+                fontSize: 12
+              }}
+              size={4}
+            >
+              <InfoCircleOutlined style={{ fontSize: 12 }} />
+              <span>{t('searchTip')}</span>
+            </Space>
+          </div>
         </Header>
         <Content style={{ padding: '20px' }}>
           {scanErrorCode && (
@@ -345,7 +367,7 @@ function App(): React.JSX.Element {
               pageSizeOptions: ['10', '20', '50', '100'],
               showTotal: (total) => t('totalItems', { total })
             }}
-            scroll={{ y: 'calc(100vh - 300px)' }}
+            scroll={{ y: `calc(100vh - ${295 + (scanErrorCode ? 56 : 0)}px)` }}
             locale={{ emptyText: t('emptyText') }}
           />
         </Content>
