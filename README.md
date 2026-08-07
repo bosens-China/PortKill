@@ -1,100 +1,51 @@
-# PortKill 🎯
+# PortKill
 
-PortKill 是一款基于 Electron 和 React 构建的现代跨平台桌面应用程序，旨在帮助您优雅地管理和强制终止系统端口。从此告别“端口已被占用 (Port already in use)”的烦恼！
+一款简洁的跨平台端口管理工具。查看指定端口是否被占用，并可结束对应进程。
 
-## ✨ 核心特性
+## 下载
 
-- **实时监控**：使用单次原生命令扫描监听端口，每 5 秒在后台更新状态。
-- **智能展示**：未被占用的端口以 `--` 优雅展示，保持界面整洁。
-- **批量操作**：支持多选端口，一键批量终止进程或移出监控列表。
-- **原生进程管理**：底层采用原生系统命令（`lsof`/`netstat`, `kill`/`taskkill`），不依赖第三方模块，安全可靠。
-- **配置持久化**：自定义监控端口、主题偏好和语言设置自动保存在 `localStorage` 中。
-- **动态主题**：内置深色与浅色模式，支持自动跟随系统主题。
-- **国际化 (i18n)**：完美支持简体中文和英文，并能自动匹配系统语言。
-- **系统托盘与后台常驻**：关闭窗口后驻留托盘，随时待命。
+前往 [GitHub Releases](https://github.com/bosens-China/PortKill/releases/) 下载适用于 macOS、Windows 或 Linux 的安装包。
 
-## 🚀 技术栈
+> macOS 用户如果看到“Apple 无法验证”提示，请先确认安装包来自上述 Releases 页面，再按下方步骤打开应用。
 
-- **框架**: Electron + Vite
-- **前端**: React 19 (开启 React Compiler)
-- **UI 组件库**: Ant Design
-- **样式**: UnoCSS + 原生 CSS
-- **国际化**: i18next + react-i18next
-- **构建工具**: pnpm
+## 界面预览
 
-## 📦 本地开发
+![PortKill 主界面](docs/images/portkill-main-window.png)
 
-### 系统要求
+## 主要功能
 
-- Node.js 20 或更高版本
-- pnpm（版本以 `package.json` 的 `packageManager` 字段为准）
-- macOS 已内置 `lsof`
-- Linux 需要预先安装 `lsof`，例如 Debian/Ubuntu 可执行 `sudo apt install lsof`
+- 监控常用端口，并显示占用该端口的进程和进程 ID。
+- 支持结束单个或多个占用端口的进程。
+- 未被占用的端口保留在列表中，方便持续观察。
+- 支持自定义端口、深浅色主题和中英文界面。
+- 关闭窗口后仍可通过系统托盘再次打开。
 
-### 启动项目
+## macOS 无法打开应用
 
-1. **克隆项目**
+未加入 Apple Developer Program 的应用可能会被 macOS Gatekeeper 拦截，并显示 Apple 无法验证的提示。这表示 Apple 尚未验证该应用，并不代表应用一定安全。请仅对从 [GitHub Releases](https://github.com/bosens-China/PortKill/releases/) 下载的安装包执行以下操作。
+
+1. 首次双击应用时，看到提示后点击“完成”。
+
+   ![macOS 首次打开时的安全提示](docs/images/macos-gatekeeper-warning.png)
+
+2. 打开“系统设置 → 隐私与安全性”，滚动到页面底部，找到 PortKill 的拦截提示。
+3. 点击“仍要打开”，并在随后出现的确认框中再次点击“仍要打开”。
+
+   ![在 macOS 隐私与安全性中允许打开 PortKill](docs/images/macos-privacy-security-open-anyway.png)
+
+之后即可正常打开 PortKill。若未出现“仍要打开”按钮，请在 Finder 中按住 Control 键点按 PortKill，选择“打开”，再在确认框中点击“打开”。
+
+## 本地开发
+
+需要 Node.js 20+ 和 pnpm。Linux 还需安装 `lsof`（Debian/Ubuntu：`sudo apt install lsof`）。
 
 ```bash
-git clone https://github.com/yliu/PortKill.git
+git clone https://github.com/bosens-China/PortKill.git
 cd PortKill
-```
-
-2. **安装依赖** (请确保已安装 pnpm)
-
-```bash
 pnpm install
-```
-
-3. **重新编译 Electron 二进制文件** (按需)
-
-```bash
-pnpm rebuild electron
-```
-
-4. **启动开发服务器**
-
-```bash
 pnpm dev
 ```
 
-## 🛠️ 打包构建
+## 开源协议
 
-本项目已配置自动化 CI/CD，发布新版本时会自动在 GitHub Releases 构建各平台安装包。如需本地手动打包：
-
-```bash
-# Mac
-pnpm build:mac
-
-# Windows
-pnpm build:win
-
-# Linux
-pnpm build:linux
-```
-
-## ⚠️ 平台说明
-
-### Windows
-
-Windows 没有与 POSIX `SIGTERM` 完全等价的通用进程结束机制。“结束”会先使用不带
-`/F` 的 `taskkill` 尝试正常关闭；控制台程序可能只支持“强制结束”，应用会在这种情况
-下给出明确提示。
-
-### Linux
-
-Deb 安装包会声明 `lsof` 依赖。AppImage 无法自动安装系统依赖，如果系统缺少 `lsof`，
-应用会在界面中提示安装。由于 Snap 的严格沙箱无法可靠扫描和终止宿主机进程，项目不
-提供 Snap 包。
-
-### macOS
-
-项目目前由个人开发者维护，没有加入 Apple Developer Program，因此发布的 DMG 会以
-`unsigned` 标记且未经过 Apple 公证。首次打开时如被 Gatekeeper 阻止，请在 Finder 中
-右键应用并选择“打开”，或前往“系统设置 → 隐私与安全性”确认打开。请只从本项目的
-GitHub Releases 下载产物。
-
-## 📝 开源协议
-
-本项目基于 [MIT License](LICENSE) 开源。  
-Copyright (c) 2026 yliu.
+[MIT License](LICENSE) © 2026 yliu
