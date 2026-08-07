@@ -1,6 +1,6 @@
 {
   "name": "portkill",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "packageManager": "pnpm@11.15.1",
   "description": "A modern and elegant tool to monitor and forcefully kill system ports.",
   "main": "./out/main/index.js",
