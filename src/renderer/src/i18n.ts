@@ -6,6 +6,8 @@ const resources = {
     translation: {
       appName: 'PortKill',
       searchPlaceholder: 'Search & Add Port...',
+      searchHint:
+        'Typing filters the current table. To check an unlisted port, enter it and press Enter or click Search.',
       refresh: 'Refresh',
       port: 'Port',
       processName: 'Process Name',
@@ -102,6 +104,8 @@ const resources = {
     translation: {
       appName: 'PortKill',
       searchPlaceholder: '搜索并添加端口...',
+      searchHint:
+        '输入内容会筛选当前表格；查询未在列表中的端口，请输入端口号后按 Enter 或点击搜索图标。',
       refresh: '刷新',
       port: '端口号',
       processName: '进程名',

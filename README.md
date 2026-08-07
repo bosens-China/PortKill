@@ -25,13 +25,13 @@
 未加入 Apple Developer Program 的应用可能会被 macOS Gatekeeper 拦截，并显示 Apple 无法验证的提示。这表示 Apple 尚未验证该应用，并不代表应用一定安全。请仅对从 [GitHub Releases](https://github.com/bosens-China/PortKill/releases/) 下载的安装包执行以下操作。
 
 1. 首次双击应用时，看到提示后点击“完成”。
-
-   ![macOS 首次打开时的安全提示](docs/images/macos-gatekeeper-warning.png)
-
 2. 打开“系统设置 → 隐私与安全性”，滚动到页面底部，找到 PortKill 的拦截提示。
 3. 点击“仍要打开”，并在随后出现的确认框中再次点击“仍要打开”。
 
-   ![在 macOS 隐私与安全性中允许打开 PortKill](docs/images/macos-privacy-security-open-anyway.png)
+<p align="center">
+  <img src="docs/images/macos-gatekeeper-warning.png" alt="macOS 首次打开时的安全提示" height="260" />
+  <img src="docs/images/macos-privacy-security-open-anyway.png" alt="在 macOS 隐私与安全性中允许打开 PortKill" height="260" />
+</p>
 
 之后即可正常打开 PortKill。若未出现“仍要打开”按钮，请在 Finder 中按住 Control 键点按 PortKill，选择“打开”，再在确认框中点击“打开”。
 

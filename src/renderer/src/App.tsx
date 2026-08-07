@@ -16,6 +16,7 @@ import {
 import {
   DeleteOutlined,
   EyeInvisibleOutlined,
+  InfoCircleOutlined,
   SettingOutlined,
   StopOutlined,
   SyncOutlined
@@ -295,6 +296,10 @@ function App(): React.JSX.Element {
               }
             />
           )}
+          <Space size={6} style={{ marginBottom: 12 }}>
+            <InfoCircleOutlined />
+            <Typography.Text type="secondary">{t('searchHint')}</Typography.Text>
+          </Space>
           <div
             style={{
               marginBottom: 16,
