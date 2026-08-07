@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.4.0](https://github.com/bosens-China/PortKill/compare/v1.3.0...v1.4.0) (2026-08-07)
+
+
+### Features
+
+* 重构批量工具栏、增加占用端口 Tooltip 并支持分页持久化 ([0d1bc7a](https://github.com/bosens-China/PortKill/commit/0d1bc7ab38855eb473b5229adcb37778eae3ad96))
+
+
+### Bug Fixes
+
+* 修复窗口最外侧异常滚动条并恢复 Header 搜索提示 ([b013822](https://github.com/bosens-China/PortKill/commit/b013822f3f10e7611336f709ae2c9e43c893d40b))
+
 ## [1.3.0](https://github.com/bosens-China/PortKill/compare/v1.2.1...v1.3.0) (2026-08-07)
 
 
