@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/bosens-China/PortKill/compare/v1.4.0...v1.5.0) (2026-08-21)
+
+
+### Features
+
+* 支持配置窗口关闭行为 ([8b92e6d](https://github.com/bosens-China/PortKill/commit/8b92e6d9e3a69e66b93afdcd4fbe437ff665aaed))
+
 ## [1.4.0](https://github.com/bosens-China/PortKill/compare/v1.3.0...v1.4.0) (2026-08-07)
 
 
