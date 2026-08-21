@@ -3,25 +3,15 @@ import {
   Alert,
   Button,
   ConfigProvider,
-  Input,
   Layout,
-  Select,
   Space,
   Table,
   Tag,
   theme,
   Tooltip,
-  Typography,
-  type TableColumnsType
+  Typography
 } from 'antd'
-import {
-  DeleteOutlined,
-  EyeInvisibleOutlined,
-  InfoCircleOutlined,
-  SettingOutlined,
-  StopOutlined,
-  SyncOutlined
-} from '@ant-design/icons'
+import { DeleteOutlined, EyeInvisibleOutlined, StopOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import zhCN from 'antd/locale/zh_CN'
 import enUS from 'antd/locale/en_US'
@@ -40,9 +30,12 @@ import {
 import { SettingsDrawer } from './components/SettingsDrawer'
 import { ConfirmModal } from './components/ConfirmModal'
 import { UpdateController } from './components/UpdateController'
+import { CloseBehaviorModal } from './components/CloseBehaviorModal'
+import { useCloseBehavior } from './hooks/useCloseBehavior'
+import { AppHeader, type PortFilterStatus } from './components/AppHeader'
+import { usePortColumns } from './hooks/usePortColumns'
 
-const { Header, Content } = Layout
-const { Title } = Typography
+const { Content } = Layout
 
 type AppTheme = 'auto' | 'light' | 'dark'
 type AppLanguage = 'auto' | 'zh' | 'en'
@@ -79,7 +72,7 @@ function App(): React.JSX.Element {
   } = usePortState()
 
   const [searchVal, setSearchVal] = useState('')
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
+  const [filterStatus, setFilterStatus] = useState<PortFilterStatus>('all')
 
   const [pageSize, setPageSize] = useState<number>(() => {
     const saved = localStorage.getItem(PAGE_SIZE_KEY)
@@ -88,11 +81,8 @@ function App(): React.JSX.Element {
   })
   const [currentPage, setCurrentPage] = useState<number>(1)
 
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [searchVal, filterStatus])
-
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const closeBehaviorState = useCloseBehavior()
   const [appTheme, setAppTheme] = useState<AppTheme>(
     getStoredPreference<AppTheme>(THEME_KEY, ['auto', 'light', 'dark'], 'auto')
   )
@@ -169,67 +159,8 @@ function App(): React.JSX.Element {
 
   const isDark = appTheme === 'dark' || (appTheme === 'auto' && systemDark)
   const algorithm = isDark ? theme.darkAlgorithm : theme.defaultAlgorithm
-  const bgHeader = isDark ? '#1f1f1f' : '#ffffff'
   const bgLayout = isDark ? '#141414' : '#f0f2f5'
-
-  const columns: TableColumnsType<DisplayPortStatus> = [
-    {
-      title: t('port'),
-      dataIndex: 'port',
-      key: 'port',
-      render: (text: number, record: DisplayPortStatus) => (
-        <strong style={{ color: record.active ? 'inherit' : '#999' }}>{text}</strong>
-      )
-    },
-    {
-      title: t('processName'),
-      dataIndex: 'name',
-      key: 'name',
-      render: (text: string, record: DisplayPortStatus) =>
-        record.active ? text : <span style={{ color: '#999' }}>--</span>
-    },
-    {
-      title: t('pid'),
-      dataIndex: 'pid',
-      key: 'pid',
-      render: (text: number, record: DisplayPortStatus) =>
-        record.active ? text : <span style={{ color: '#999' }}>--</span>
-    },
-    {
-      title: t('action'),
-      key: 'action',
-      render: (_, record) => {
-        return (
-          <Space>
-            <Tooltip title={t('endProcess')}>
-              <Button
-                type="primary"
-                disabled={!record.active}
-                icon={<StopOutlined />}
-                onClick={() => requestAction(record, false, 'kill')}
-              />
-            </Tooltip>
-            <Tooltip title={t('forceKill')}>
-              <Button
-                type="primary"
-                disabled={!record.active}
-                danger
-                icon={<DeleteOutlined />}
-                onClick={() => requestAction(record, true, 'kill')}
-              />
-            </Tooltip>
-            <Tooltip title={t('removeWatch')}>
-              <Button
-                type="dashed"
-                icon={<EyeInvisibleOutlined />}
-                onClick={() => requestAction(record, false, 'unwatch')}
-              />
-            </Tooltip>
-          </Space>
-        )
-      }
-    }
-  ]
+  const columns = usePortColumns(requestAction)
 
   let displayedPorts = allPorts.filter(
     (p) =>
@@ -254,67 +185,29 @@ function App(): React.JSX.Element {
   return (
     <ConfigProvider theme={{ algorithm }} locale={antdLocale}>
       <UpdateController />
+      <CloseBehaviorModal
+        closePromptOpen={closeBehaviorState.closePromptOpen}
+        resolveCloseRequest={closeBehaviorState.resolveCloseRequest}
+        cancelCloseRequest={closeBehaviorState.cancelCloseRequest}
+      />
       <Layout style={{ height: '100vh', overflow: 'hidden', background: bgLayout }}>
-        <Header
-          style={{
-            background: bgHeader,
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '16px 20px 12px 20px',
-            height: 'auto',
-            lineHeight: 1.4,
-            borderBottom: isDark ? '1px solid #303030' : '1px solid #f0f0f0'
+        <AppHeader
+          isDark={isDark}
+          filterStatus={filterStatus}
+          onFilterStatusChange={(status) => {
+            setFilterStatus(status)
+            setCurrentPage(1)
           }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              width: '100%'
-            }}
-          >
-            <Title level={4} style={{ color: isDark ? '#fff' : '#000', margin: 0 }}>
-              {t('appName')}
-            </Title>
-            <Space>
-              <Select value={filterStatus} onChange={setFilterStatus} style={{ width: 120 }}>
-                <Select.Option value="all">{t('filterAll')}</Select.Option>
-                <Select.Option value="active">{t('filterActive')}</Select.Option>
-                <Select.Option value="inactive">{t('filterInactive')}</Select.Option>
-              </Select>
-              <Input.Search
-                placeholder={t('searchPlaceholder')}
-                value={searchVal}
-                onChange={(e) => setSearchVal(e.target.value)}
-                onSearch={handleAddWatch}
-                style={{ width: 200 }}
-                allowClear
-              />
-              <Button icon={<SyncOutlined spin={loading} />} onClick={fetchStatus} type="primary">
-                {t('refresh')}
-              </Button>
-              <Button
-                icon={<SettingOutlined />}
-                type="text"
-                onClick={() => setSettingsOpen(true)}
-                style={{ color: isDark ? '#fff' : '#000' }}
-              />
-            </Space>
-          </div>
-          <div style={{ marginTop: 8, width: '100%' }}>
-            <Space
-              style={{
-                color: isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.45)',
-                fontSize: 12
-              }}
-              size={4}
-            >
-              <InfoCircleOutlined style={{ fontSize: 12 }} />
-              <span>{t('searchTip')}</span>
-            </Space>
-          </div>
-        </Header>
+          searchValue={searchVal}
+          onSearchValueChange={(value) => {
+            setSearchVal(value)
+            setCurrentPage(1)
+          }}
+          onAddWatch={handleAddWatch}
+          loading={loading}
+          onRefresh={fetchStatus}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
         <Content style={{ padding: '20px' }}>
           {scanErrorCode && (
             <Alert
@@ -381,9 +274,7 @@ function App(): React.JSX.Element {
                       </Tag>
                     </Tooltip>
                   ) : (
-                    <Tag color="processing">
-                      {t('filterActive')}: 0
-                    </Tag>
+                    <Tag color="processing">{t('filterActive')}: 0</Tag>
                   )}
                   <Tag color="default">
                     {t('filterInactive')}: {allPorts.filter((p) => !p.active).length}
@@ -399,8 +290,7 @@ function App(): React.JSX.Element {
                   icon={<StopOutlined />}
                   onClick={() => requestBatchAction(false, 'batchKill')}
                 >
-                  {t('batchEnd')}{' '}
-                  {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
+                  {t('batchEnd')} {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
                 </Button>
               </Tooltip>
               <Tooltip title={selectedRowKeys.length === 0 ? t('selectRequiredHint') : ''}>
@@ -460,6 +350,8 @@ function App(): React.JSX.Element {
           setAppTheme={setAppTheme}
           appLang={appLang}
           setAppLang={setAppLang}
+          closeBehavior={closeBehaviorState.closeBehavior}
+          onCloseBehaviorChange={closeBehaviorState.updateCloseBehavior}
           onRestoreDefaults={handleRestoreDefaults}
         />
 

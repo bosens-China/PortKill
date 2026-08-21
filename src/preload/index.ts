@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { UPDATE_CHANNELS, type UpdateState } from '../shared/update'
+import { CLOSE_CHANNELS, type CloseBehavior } from '../shared/close-behavior'
 
 // Custom APIs for renderer
 const api = {
@@ -11,6 +12,15 @@ const api = {
   downloadUpdate: () => ipcRenderer.invoke(UPDATE_CHANNELS.download),
   installUpdate: () => ipcRenderer.invoke(UPDATE_CHANNELS.install),
   openReleasePage: () => ipcRenderer.invoke(UPDATE_CHANNELS.openRelease),
+  setCloseBehavior: (behavior: CloseBehavior | null) =>
+    ipcRenderer.invoke(CLOSE_CHANNELS.setBehavior, behavior),
+  resolveCloseRequest: (behavior: CloseBehavior) =>
+    ipcRenderer.invoke(CLOSE_CHANNELS.resolveRequest, behavior),
+  onCloseRequested: (callback: () => void) => {
+    const listener = (): void => callback()
+    ipcRenderer.on(CLOSE_CHANNELS.requested, listener)
+    return () => ipcRenderer.removeListener(CLOSE_CHANNELS.requested, listener)
+  },
   onUpdateStateChanged: (callback: (state: UpdateState) => void) => {
     const listener = (_event: IpcRendererEvent, state: UpdateState): void => callback(state)
     ipcRenderer.on(UPDATE_CHANNELS.stateChanged, listener)

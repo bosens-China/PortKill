@@ -6,13 +6,26 @@ import icon from '../../resources/icon.png?asset'
 import { checkPorts, killProcess } from './port-process'
 import { UpdateManager } from './update-manager'
 import { UPDATE_CHANNELS, type UpdateInstallMode } from '../shared/update'
+import { CLOSE_CHANNELS, isCloseBehavior, type CloseBehavior } from '../shared/close-behavior'
 
 let mainWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let updateManager: UpdateManager | null = null
 let isQuitting = false
+let closeBehavior: CloseBehavior | null = null
 
 const RELEASES_URL = 'https://github.com/bosens-China/PortKill/releases/latest'
+
+function hideWindowToTray(): void {
+  mainWindow?.hide()
+  if (process.platform === 'darwin') app.dock?.hide()
+}
+
+function showMainWindow(): void {
+  if (process.platform === 'darwin') void app.dock?.show()
+  mainWindow?.show()
+  mainWindow?.focus()
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -34,9 +47,16 @@ function createWindow(): void {
   })
 
   mainWindow.on('close', (event) => {
-    if (!isQuitting) {
-      event.preventDefault()
-      mainWindow?.hide()
+    if (isQuitting) return
+
+    event.preventDefault()
+    if (closeBehavior === 'tray') {
+      hideWindowToTray()
+    } else if (closeBehavior === 'quit') {
+      isQuitting = true
+      app.quit()
+    } else {
+      mainWindow?.webContents.send(CLOSE_CHANNELS.requested)
     }
   })
 
@@ -62,7 +82,7 @@ function createTray(): void {
   const trayIcon = nativeImage.createFromPath(icon).resize({ width: 16, height: 16 })
   tray = new Tray(trayIcon)
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'Show PortKill', click: () => mainWindow?.show() },
+    { label: 'Show PortKill', click: showMainWindow },
     { type: 'separator' },
     {
       label: 'Quit',
@@ -74,7 +94,7 @@ function createTray(): void {
   ])
   tray.setToolTip('PortKill')
   tray.setContextMenu(contextMenu)
-  tray.on('click', () => mainWindow?.show())
+  tray.on('click', showMainWindow)
 }
 
 app.on('before-quit', () => {
@@ -129,6 +149,22 @@ app.whenReady().then(() => {
     return await killProcess(request.pid, request.force)
   })
 
+  ipcMain.handle(CLOSE_CHANNELS.setBehavior, (_, behavior: unknown) => {
+    if (behavior !== null && !isCloseBehavior(behavior)) throw new Error('INVALID_CLOSE_BEHAVIOR')
+    closeBehavior = behavior
+  })
+
+  ipcMain.handle(CLOSE_CHANNELS.resolveRequest, (_, behavior: unknown) => {
+    if (!isCloseBehavior(behavior)) throw new Error('INVALID_CLOSE_BEHAVIOR')
+    closeBehavior = behavior
+    if (behavior === 'tray') {
+      hideWindowToTray()
+    } else {
+      isQuitting = true
+      app.quit()
+    }
+  })
+
   updateManager = new UpdateManager(autoUpdater, {
     currentVersion: app.getVersion(),
     isPackaged: app.isPackaged,
@@ -162,8 +198,7 @@ app.whenReady().then(() => {
       createWindow()
       return
     }
-    mainWindow.show()
-    mainWindow.focus()
+    showMainWindow()
   })
 })
 

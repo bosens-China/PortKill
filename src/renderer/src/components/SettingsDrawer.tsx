@@ -4,6 +4,7 @@ import { GithubOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { THEME_KEY, LANG_KEY } from '../hooks/usePortState'
 import { UpdateSettingsSection } from './UpdateSettingsSection'
+import type { CloseBehavior } from '../../../shared/close-behavior'
 
 interface SettingsDrawerProps {
   open: boolean
@@ -12,6 +13,8 @@ interface SettingsDrawerProps {
   setAppTheme: (val: 'auto' | 'light' | 'dark') => void
   appLang: 'auto' | 'zh' | 'en'
   setAppLang: (val: 'auto' | 'zh' | 'en') => void
+  closeBehavior: CloseBehavior | null
+  onCloseBehaviorChange: (behavior: CloseBehavior) => void
   onRestoreDefaults: () => void
 }
 
@@ -22,6 +25,8 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
   setAppTheme,
   appLang,
   setAppLang,
+  closeBehavior,
+  onCloseBehaviorChange,
   onRestoreDefaults
 }) => {
   const { t, i18n } = useTranslation()
@@ -58,6 +63,18 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
             <Select.Option value="auto">{t('systemDefault')}</Select.Option>
             <Select.Option value="zh">简体中文</Select.Option>
             <Select.Option value="en">English</Select.Option>
+          </Select>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{t('whenClosingWindow')}</span>
+          <Select
+            value={closeBehavior ?? undefined}
+            placeholder={t('askOnFirstClose')}
+            onChange={onCloseBehaviorChange}
+            style={{ width: 150 }}
+          >
+            <Select.Option value="tray">{t('minimizeToTray')}</Select.Option>
+            <Select.Option value="quit">{t('quitApplication')}</Select.Option>
           </Select>
         </div>
 
