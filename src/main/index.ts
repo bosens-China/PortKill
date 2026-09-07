@@ -3,7 +3,8 @@ import { autoUpdater } from 'electron-updater'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { checkPorts, killProcess } from './port-process'
+import { checkPorts } from './port-process'
+import { killProcesses } from './kill-process'
 import { UpdateManager } from './update-manager'
 import { UPDATE_CHANNELS, type UpdateInstallMode } from '../shared/update'
 import { CLOSE_CHANNELS, isCloseBehavior, type CloseBehavior } from '../shared/close-behavior'
@@ -115,13 +116,6 @@ function validatePorts(value: unknown): number[] {
   return [...new Set(ports)]
 }
 
-function validateKillRequest(pid: unknown, force: unknown): { pid: number; force: boolean } {
-  if (typeof pid !== 'number' || !Number.isInteger(pid) || pid <= 0 || typeof force !== 'boolean') {
-    throw new Error('INVALID_KILL_REQUEST')
-  }
-  return { pid, force }
-}
-
 function getUpdateInstallMode(): UpdateInstallMode {
   if (process.platform === 'win32') return 'in-app'
   if (process.platform === 'linux' && Boolean(process.env.APPIMAGE)) return 'in-app'
@@ -144,9 +138,8 @@ app.whenReady().then(() => {
     return await checkPorts(validatePorts(ports))
   })
 
-  ipcMain.handle('kill-process', async (_, pid: unknown, force: unknown) => {
-    const request = validateKillRequest(pid, force)
-    return await killProcess(request.pid, request.force)
+  ipcMain.handle('kill-process', async (_, targets: unknown, force: unknown) => {
+    return await killProcesses(targets, force)
   })
 
   ipcMain.handle(CLOSE_CHANNELS.setBehavior, (_, behavior: unknown) => {

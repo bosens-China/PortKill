@@ -1,89 +1,97 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  classifyKillError,
-  parseLsof,
-  parseWindowsNetstat,
-  waitForProcessExit
-} from './port-process'
+import { checkPorts, parseLsof, parseWindowsNetstat } from './port-process'
+import { runCommand } from './port-command'
+import { readProcessIdentities } from './process-identity'
+
+vi.mock('./port-command', async (original) => ({
+  ...(await original<typeof import('./port-command')>()),
+  runCommand: vi.fn()
+}))
+vi.mock('./process-identity', () => ({ readProcessIdentities: vi.fn() }))
+const platform = process.platform
 
 afterEach(() => {
-  vi.useRealTimers()
-  vi.restoreAllMocks()
+  vi.resetAllMocks()
+  Object.defineProperty(process, 'platform', { value: platform })
 })
 
-describe('parseWindowsNetstat', () => {
-  it('matches exact watched ports instead of substrings', () => {
+describe('listener parsing', () => {
+  it('keeps different Windows PIDs on the same port and ignores UDP and connections', () => {
     const output = [
-      '  Proto  Local Address          Foreign Address        State           PID',
-      '  TCP    0.0.0.0:8080           0.0.0.0:0              LISTENING       1200',
-      '  TCP    127.0.0.1:80           0.0.0.0:0              LISTENING       1300'
+      'TCP 0.0.0.0:8080 0.0.0.0:0 LISTENING 1200',
+      'TCP 127.0.0.1:80 0.0.0.0:0 LISTENING 1300',
+      'TCP [::1]:80 [::]:0 LISTENING 1400',
+      'TCP [::1]:80 [::]:0 LISTENING 1400',
+      'TCP 127.0.0.1:80 1.2.3.4:5000 ESTABLISHED 1500',
+      'UDP 0.0.0.0:80 *:* 1600'
     ].join('\r\n')
-
     expect(parseWindowsNetstat(output, new Set([80]))).toEqual([
-      { port: 80, pid: 1300, name: 'Unknown' }
+      { port: 80, pid: 1300, name: 'Unknown' },
+      { port: 80, pid: 1400, name: 'Unknown' }
     ])
   })
 
-  it('parses IPv6 listeners and keeps ports sharing one process', () => {
-    const output = [
-      '  TCP    [::]:3000              [::]:0                 LISTENING       2000',
-      '  TCP    [::1]:3001             [::]:0                 LISTENING       2000'
-    ].join('\r\n')
-
-    expect(parseWindowsNetstat(output, new Set([3000, 3001]))).toEqual([
-      { port: 3000, pid: 2000, name: 'Unknown' },
-      { port: 3001, pid: 2000, name: 'Unknown' }
-    ])
-  })
-})
-
-describe('parseLsof', () => {
-  it('parses IPv4 and IPv6 listeners for watched ports', () => {
-    const output = [
-      'COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME',
-      'node 123 user 24u IPv6 0x123 0t0 TCP *:3000 (LISTEN)',
-      'postgres 456 user 10u IPv4 0x456 0t0 TCP 127.0.0.1:5432 (LISTEN)',
-      'redis 789 user 11u IPv4 0x789 0t0 TCP *:6379 (LISTEN)'
-    ].join('\n')
-
-    expect(parseLsof(output, new Set([3000, 5432]))).toEqual([
-      { port: 3000, pid: 123, name: 'node' },
-      { port: 5432, pid: 456, name: 'postgres' }
+  it('parses tagged lsof records including spaces and a process named TCP', () => {
+    const output =
+      'p123\ncTCP\nn127.0.0.1:3000\nn*:3000\np456\ncmy app\nn[::1]:3000\nn*:3001\nn*:13000\n'
+    expect(parseLsof(output, new Set([3000, 3001]))).toEqual([
+      { port: 3000, pid: 123, name: 'TCP' },
+      { port: 3000, pid: 456, name: 'my app' },
+      { port: 3001, pid: 456, name: 'my app' }
     ])
   })
 })
 
-describe('classifyKillError', () => {
-  it('prioritizes permission errors on every platform', () => {
-    expect(classifyKillError('ERROR: Access is denied.', false, 'win32')).toBe('PERMISSION_DENIED')
-    expect(classifyKillError('kill: Operation not permitted', true, 'linux')).toBe(
-      'PERMISSION_DENIED'
+describe('scan errors', () => {
+  it.each([
+    { code: 1, stdout: '', stderr: 'lsof: permission denied' },
+    { code: 1, stdout: 'p123\ncnode\nn*:3000', stderr: 'partial result' },
+    { code: 0, stdout: 'p123\ncnode\nn*:3000', stderr: 'warning: output may be incomplete' }
+  ])('does not report a diagnostic as idle: $code $stderr', async (result) => {
+    Object.defineProperty(process, 'platform', { value: 'linux' })
+    vi.mocked(runCommand).mockResolvedValue(result)
+    expect(await checkPorts([3000])).toMatchObject({ errorCode: 'SCAN_FAILED' })
+  })
+
+  it('accepts only a quiet empty lsof exit 1 as no matches', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' })
+    vi.mocked(runCommand).mockResolvedValue({ code: 1, stdout: '', stderr: '' })
+    expect(await checkPorts([3000])).toEqual({ statuses: [] })
+  })
+
+  it('reports a missing lsof separately', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' })
+    vi.mocked(runCommand).mockResolvedValue({ code: 127, stdout: '', stderr: 'not found' })
+    expect(await checkPorts([3000])).toMatchObject({ errorCode: 'LSOF_NOT_FOUND' })
+  })
+
+  it('reports timeout and can scan again afterwards', async () => {
+    vi.mocked(runCommand)
+      .mockRejectedValueOnce(Object.assign(new Error('timeout'), { code: 'COMMAND_TIMEOUT' }))
+      .mockResolvedValueOnce({ code: 0, stdout: '', stderr: '' })
+    expect(await checkPorts([3000])).toMatchObject({ errorCode: 'SCAN_TIMEOUT' })
+    expect(await checkPorts([3000])).toEqual({ statuses: [] })
+  })
+
+  it('retains known listeners when identity lookup fails', async () => {
+    Object.defineProperty(process, 'platform', { value: 'darwin' })
+    vi.mocked(runCommand).mockResolvedValue({ code: 0, stdout: 'p123\ncnode\nn*:3000', stderr: '' })
+    vi.mocked(readProcessIdentities).mockRejectedValue(new Error('cannot read start time'))
+    expect(await checkPorts([3000])).toEqual({ statuses: [{ port: 3000, pid: 123, name: 'node' }] })
+  })
+
+  it('enriches Windows names and identities in one lookup', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+    vi.mocked(runCommand).mockResolvedValue({
+      code: 0,
+      stdout: 'TCP [::]:3000 [::]:0 LISTENING 123',
+      stderr: ''
+    })
+    vi.mocked(readProcessIdentities).mockResolvedValue(
+      new Map([[123, { name: '中文进程', startedAt: '638900000000000000' }]])
     )
-  })
-
-  it('suggests force kill for a non-force Windows failure', () => {
-    expect(
-      classifyKillError('This process can only be terminated forcefully', false, 'win32')
-    ).toBe('FORCE_REQUIRED')
-  })
-})
-
-describe('waitForProcessExit', () => {
-  it('resolves only after the process no longer exists', async () => {
-    vi.useFakeTimers()
-    const missingProcess = Object.assign(new Error('kill ESRCH'), { code: 'ESRCH' })
-    const kill = vi
-      .spyOn(process, 'kill')
-      .mockReturnValueOnce(true)
-      .mockImplementationOnce(() => {
-        throw missingProcess
-      })
-
-    const waiting = waitForProcessExit(3009)
-    await vi.advanceTimersByTimeAsync(100)
-
-    await expect(waiting).resolves.toBeUndefined()
-    expect(kill).toHaveBeenNthCalledWith(1, 3009, 0)
-    expect(kill).toHaveBeenNthCalledWith(2, 3009, 0)
+    expect(await checkPorts([3000])).toEqual({
+      statuses: [{ port: 3000, pid: 123, name: '中文进程', startedAt: '638900000000000000' }]
+    })
   })
 })

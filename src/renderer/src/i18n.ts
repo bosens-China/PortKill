@@ -8,6 +8,20 @@ const resources = {
       searchPlaceholder: 'Search & Add Port...',
       searchTip:
         'Filtering current table; to check an unlisted port, enter the port number and press Enter or click the search icon.',
+      tcpScope:
+        'TCP listeners only (IPv4/IPv6). UDP is not included. Results depend on system permissions.',
+      portStatusUnknown: 'Unknown',
+      identityUnavailable:
+        'Cannot verify this process identity. Check permissions and refresh before ending it.',
+      targetChanged:
+        'The processes on this port have changed. Status is being refreshed; review the new targets.',
+      commandTimeout: 'The system command timed out. Please refresh and try again.',
+      exitTimeout: 'The process has not exited yet. Refresh its status before trying again.',
+      portStillOccupied:
+        'The selected processes exited, but a listener still occupies the port. Status is being refreshed.',
+      noSafeProcessesSelected:
+        'Select active ports with verified process identities. Refresh unknown ports first.',
+      killPartialFailure: 'Ended {{count}} processes, but the action is incomplete: {{reason}}',
       refresh: 'Refresh',
       port: 'Port',
       processName: 'Process Name',
@@ -44,7 +58,8 @@ const resources = {
       light: 'Light',
       dark: 'Dark',
       confirmKillTitle: 'Confirm Kill Process',
-      confirmKillContent: 'Are you sure you want to end process {{pid}} on port {{port}}?',
+      confirmKillContent:
+        'End all {{count}} listed processes (PID: {{pid}}) on port {{port}}? Their other ports and tasks will also be affected.',
       dontShowAgain: "Don't show this again",
       confirm: 'Confirm',
       cancel: 'Cancel',
@@ -61,6 +76,8 @@ const resources = {
       batchForceKill: 'Batch Force Kill',
       batchRemove: 'Batch Remove',
       batchConfirmTitle: 'Confirm Batch Action',
+      batchKillConfirmContent:
+        'End all listed processes on the {{count}} selected ports? Their other ports and tasks will also be affected.',
       batchConfirmContent:
         'Are you sure you want to apply this action to {{count}} selected ports?',
       batchKillingProcess: 'Ending {{count}} processes...',
@@ -107,9 +124,11 @@ const resources = {
       lsofMissingTitle: 'Port scanning is unavailable',
       lsofMissingDescription:
         'PortKill requires lsof on Linux. Install it with your system package manager and refresh.',
+      scanTimeoutDescription:
+        'The scan timed out. Port status is unknown; automatic refresh will retry.',
       scanFailedTitle: 'Port scan failed',
       scanFailedDescription:
-        'Port status could not be read. Check system permissions and try refreshing.'
+        'Port status could not be read and is shown as unknown. Check system permissions and refresh; unknown does not mean idle.'
     }
   },
   zh: {
@@ -118,6 +137,15 @@ const resources = {
       searchPlaceholder: '搜索并添加端口...',
       searchTip:
         '输入内容会筛选当前表格；查询未在列表中的端口，请输入端口号后按 Enter 或点击搜索图标。',
+      tcpScope: '仅检测 TCP 监听端口（IPv4/IPv6），不包含 UDP。结果受系统权限限制。',
+      portStatusUnknown: '状态未知',
+      identityUnavailable: '无法核验进程身份，请检查权限并刷新后再结束进程。',
+      targetChanged: '端口占用者已变化，正在刷新状态，请核对新的进程后重试。',
+      commandTimeout: '系统命令执行超时，请刷新后重试。',
+      exitTimeout: '进程尚未退出，请刷新状态后再决定是否重试。',
+      portStillOccupied: '所选进程已退出，但端口仍有监听进程，正在刷新状态。',
+      noSafeProcessesSelected: '请选择已核验进程身份的占用端口；状态未知时请先刷新。',
+      killPartialFailure: '已结束 {{count}} 个进程，但操作未全部完成：{{reason}}',
       refresh: '刷新',
       port: '端口号',
       processName: '进程名',
@@ -153,7 +181,8 @@ const resources = {
       light: '浅色',
       dark: '深色',
       confirmKillTitle: '结束进程确认',
-      confirmKillContent: '您确定要结束端口 {{port}} 上的进程 {{pid}} 吗？',
+      confirmKillContent:
+        '确定结束端口 {{port}} 上列出的全部 {{count}} 个进程（PID：{{pid}}）吗？这些进程的其他端口和任务也会受影响。',
       dontShowAgain: '不再提示',
       confirm: '确认',
       cancel: '取消',
@@ -169,6 +198,8 @@ const resources = {
       batchForceKill: '批量强制结束',
       batchRemove: '批量取消监听',
       batchConfirmTitle: '批量操作确认',
+      batchKillConfirmContent:
+        '确定结束选中 {{count}} 个端口上列出的全部进程吗？这些进程的其他端口和任务也会受影响。',
       batchConfirmContent: '确定要对选中的 {{count}} 个端口执行该操作吗？',
       batchKillingProcess: '正在结束 {{count}} 个进程...',
       batchKillSuccess: '已成功结束 {{count}} 个进程',
@@ -211,8 +242,10 @@ const resources = {
       },
       lsofMissingTitle: '无法扫描端口',
       lsofMissingDescription: 'Linux 上需要安装 lsof，请通过系统包管理器安装后刷新。',
+      scanTimeoutDescription: '扫描超时，端口状态未知，将自动重试。',
       scanFailedTitle: '端口扫描失败',
-      scanFailedDescription: '无法读取端口状态，请检查系统权限后重试。'
+      scanFailedDescription:
+        '无法读取端口状态，已标记为未知。未知不代表空闲，请检查系统权限并刷新。'
     }
   }
 }

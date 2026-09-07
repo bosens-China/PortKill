@@ -96,6 +96,7 @@ function App(): React.JSX.Element {
   const [confirmConfig, setConfirmConfig] = useState<{
     open: boolean
     record: DisplayPortStatus | null
+    records?: DisplayPortStatus[]
     force: boolean
     actionType: ConfirmAction
   }>({ open: false, record: null, force: false, actionType: 'kill' })
@@ -118,8 +119,8 @@ function App(): React.JSX.Element {
     actionType: ConfirmAction
   ): void => {
     if (skipConfirm[getConfirmCategory(actionType)]) {
-      if (actionType === 'kill' && record.pid) {
-        void executeKill(record.pid, force)
+      if (actionType === 'kill' && record.canKill) {
+        void executeKill(record, force)
       } else if (actionType === 'unwatch') {
         executeUnwatch(record.port)
       }
@@ -133,17 +134,23 @@ function App(): React.JSX.Element {
       if (actionType === 'batchKill') void executeBatchKill(force)
       else if (actionType === 'batchUnwatch') executeBatchUnwatch()
     } else {
-      setConfirmConfig({ open: true, record: null, force, actionType })
+      setConfirmConfig({
+        open: true,
+        record: null,
+        records: allPorts.filter((port) => selectedRowKeys.includes(port.port)),
+        force,
+        actionType
+      })
     }
   }
 
   const confirmModalAction = (): void => {
-    if (confirmConfig.actionType === 'kill' && confirmConfig.record?.pid) {
-      void executeKill(confirmConfig.record.pid, confirmConfig.force)
+    if (confirmConfig.actionType === 'kill' && confirmConfig.record?.canKill) {
+      void executeKill(confirmConfig.record, confirmConfig.force)
     } else if (confirmConfig.actionType === 'unwatch' && confirmConfig.record) {
       executeUnwatch(confirmConfig.record.port)
     } else if (confirmConfig.actionType === 'batchKill') {
-      void executeBatchKill(confirmConfig.force)
+      void executeBatchKill(confirmConfig.force, confirmConfig.records)
     } else if (confirmConfig.actionType === 'batchUnwatch') {
       executeBatchUnwatch()
     }
@@ -170,8 +177,13 @@ function App(): React.JSX.Element {
   if (filterStatus === 'active') {
     displayedPorts = displayedPorts.filter((p) => p.active)
   } else if (filterStatus === 'inactive') {
-    displayedPorts = displayedPorts.filter((p) => !p.active)
+    displayedPorts = displayedPorts.filter((p) => p.active === false)
   }
+
+  const selectedPorts = allPorts.filter((port) => selectedRowKeys.includes(port.port))
+  const canBatchKill =
+    selectedPorts.some((port) => port.canKill) &&
+    selectedPorts.every((port) => port.active === false || port.canKill)
 
   const rowSelection = {
     selectedRowKeys,
@@ -220,7 +232,9 @@ function App(): React.JSX.Element {
               description={
                 scanErrorCode === 'LSOF_NOT_FOUND'
                   ? t('lsofMissingDescription')
-                  : t('scanFailedDescription')
+                  : scanErrorCode === 'SCAN_TIMEOUT'
+                    ? t('scanTimeoutDescription')
+                    : t('scanFailedDescription')
               }
             />
           )}
@@ -277,46 +291,49 @@ function App(): React.JSX.Element {
                     <Tag color="processing">{t('filterActive')}: 0</Tag>
                   )}
                   <Tag color="default">
-                    {t('filterInactive')}: {allPorts.filter((p) => !p.active).length}
+                    {t('filterInactive')}: {allPorts.filter((p) => p.active === false).length}
                   </Tag>
                 </Space>
               )}
             </div>
-            <Space>
-              <Tooltip title={selectedRowKeys.length === 0 ? t('selectRequiredHint') : ''}>
-                <Button
-                  type="primary"
-                  disabled={selectedRowKeys.length === 0}
-                  icon={<StopOutlined />}
-                  onClick={() => requestBatchAction(false, 'batchKill')}
-                >
-                  {t('batchEnd')} {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
-                </Button>
-              </Tooltip>
-              <Tooltip title={selectedRowKeys.length === 0 ? t('selectRequiredHint') : ''}>
-                <Button
-                  type="primary"
-                  danger
-                  disabled={selectedRowKeys.length === 0}
-                  icon={<DeleteOutlined />}
-                  onClick={() => requestBatchAction(true, 'batchKill')}
-                >
-                  {t('batchForceKill')}{' '}
-                  {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
-                </Button>
-              </Tooltip>
-              <Tooltip title={selectedRowKeys.length === 0 ? t('selectRequiredHint') : ''}>
-                <Button
-                  type="dashed"
-                  disabled={selectedRowKeys.length === 0}
-                  icon={<EyeInvisibleOutlined />}
-                  onClick={() => requestBatchAction(false, 'batchUnwatch')}
-                >
-                  {t('batchRemove')}{' '}
-                  {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
-                </Button>
-              </Tooltip>
-            </Space>
+            {selectedRowKeys.length > 0 && (
+              <Space>
+                <Tooltip title={selectedRowKeys.length === 0 ? t('selectRequiredHint') : ''}>
+                  <Button
+                    type="primary"
+                    disabled={!canBatchKill}
+                    icon={<StopOutlined />}
+                    onClick={() => requestBatchAction(false, 'batchKill')}
+                  >
+                    {t('batchEnd')}{' '}
+                    {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
+                  </Button>
+                </Tooltip>
+                <Tooltip title={selectedRowKeys.length === 0 ? t('selectRequiredHint') : ''}>
+                  <Button
+                    type="primary"
+                    danger
+                    disabled={!canBatchKill}
+                    icon={<DeleteOutlined />}
+                    onClick={() => requestBatchAction(true, 'batchKill')}
+                  >
+                    {t('batchForceKill')}{' '}
+                    {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
+                  </Button>
+                </Tooltip>
+                <Tooltip title={selectedRowKeys.length === 0 ? t('selectRequiredHint') : ''}>
+                  <Button
+                    type="dashed"
+                    disabled={selectedRowKeys.length === 0}
+                    icon={<EyeInvisibleOutlined />}
+                    onClick={() => requestBatchAction(false, 'batchUnwatch')}
+                  >
+                    {t('batchRemove')}{' '}
+                    {selectedRowKeys.length > 0 ? `(${selectedRowKeys.length})` : ''}
+                  </Button>
+                </Tooltip>
+              </Space>
+            )}
           </div>
           <Table
             rowSelection={rowSelection}
@@ -338,7 +355,7 @@ function App(): React.JSX.Element {
                 }
               }
             }}
-            scroll={{ y: `calc(100vh - ${295 + (scanErrorCode ? 56 : 0)}px)` }}
+            scroll={{ y: `calc(100vh - ${313 + (scanErrorCode ? 76 : 0)}px)` }}
             locale={{ emptyText: t('emptyText') }}
           />
         </Content>
@@ -363,7 +380,7 @@ function App(): React.JSX.Element {
           onCancel={() =>
             setConfirmConfig({ open: false, record: null, force: false, actionType: 'kill' })
           }
-          selectedCount={selectedRowKeys.length}
+          selectedCount={confirmConfig.records?.length ?? selectedRowKeys.length}
         />
       </Layout>
     </ConfigProvider>

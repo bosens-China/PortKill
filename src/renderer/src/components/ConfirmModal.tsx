@@ -54,12 +54,18 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
       <div style={{ padding: '10px 0 20px 0' }}>
         {config.actionType === 'kill' &&
           config.record &&
-          t('confirmKillContent', { pid: config.record.pid, port: config.record.port })}
+          t('confirmKillContent', {
+            pid: config.record.pid,
+            port: config.record.port,
+            count: config.record.processes.length
+          })}
         {config.actionType === 'unwatch' &&
           config.record &&
           t('confirmUnwatchContent', { port: config.record.port })}
         {(config.actionType === 'batchKill' || config.actionType === 'batchUnwatch') &&
-          t('batchConfirmContent', { count: selectedCount })}
+          t(config.actionType === 'batchKill' ? 'batchKillConfirmContent' : 'batchConfirmContent', {
+            count: selectedCount
+          })}
       </div>
       <Checkbox
         checked={skipConfirm}

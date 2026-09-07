@@ -22,32 +22,48 @@ export function usePortColumns(requestAction: RequestAction): TableColumnsType<D
       dataIndex: 'name',
       key: 'name',
       render: (text: string, record: DisplayPortStatus) =>
-        record.active ? text : <span style={{ color: '#999' }}>--</span>
+        record.active === undefined ? (
+          t('portStatusUnknown')
+        ) : record.active ? (
+          text
+        ) : (
+          <span style={{ color: '#999' }}>--</span>
+        )
     },
     {
       title: t('pid'),
       dataIndex: 'pid',
       key: 'pid',
-      render: (text: number, record: DisplayPortStatus) =>
-        record.active ? text : <span style={{ color: '#999' }}>--</span>
+      render: (text: string, record: DisplayPortStatus) =>
+        record.active === undefined ? (
+          t('portStatusUnknown')
+        ) : record.active ? (
+          text
+        ) : (
+          <span style={{ color: '#999' }}>--</span>
+        )
     },
     {
       title: t('action'),
       key: 'action',
       render: (_, record) => (
         <Space>
-          <Tooltip title={t('endProcess')}>
+          <Tooltip
+            title={t(record.active && !record.canKill ? 'identityUnavailable' : 'endProcess')}
+          >
             <Button
               type="primary"
-              disabled={!record.active}
+              disabled={!record.canKill}
               icon={<StopOutlined />}
               onClick={() => requestAction(record, false, 'kill')}
             />
           </Tooltip>
-          <Tooltip title={t('forceKill')}>
+          <Tooltip
+            title={t(record.active && !record.canKill ? 'identityUnavailable' : 'forceKill')}
+          >
             <Button
               type="primary"
-              disabled={!record.active}
+              disabled={!record.canKill}
               danger
               icon={<DeleteOutlined />}
               onClick={() => requestAction(record, true, 'kill')}

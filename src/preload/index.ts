@@ -3,10 +3,13 @@ import { electronAPI } from '@electron-toolkit/preload'
 import { UPDATE_CHANNELS, type UpdateState } from '../shared/update'
 import { CLOSE_CHANNELS, type CloseBehavior } from '../shared/close-behavior'
 
+import type { ProcessTarget } from '../shared/port'
+
 // Custom APIs for renderer
 const api = {
   getPortStatus: (ports: number[]) => ipcRenderer.invoke('get-port-status', ports),
-  killProcess: (pid: number, force: boolean) => ipcRenderer.invoke('kill-process', pid, force),
+  killProcess: (targets: ProcessTarget[], force: boolean) =>
+    ipcRenderer.invoke('kill-process', targets, force),
   getUpdateState: () => ipcRenderer.invoke(UPDATE_CHANNELS.getState),
   checkForUpdates: () => ipcRenderer.invoke(UPDATE_CHANNELS.check),
   downloadUpdate: () => ipcRenderer.invoke(UPDATE_CHANNELS.download),

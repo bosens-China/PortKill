@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { message } from 'antd'
 import { useTranslation } from 'react-i18next'
 import type { PortScanErrorCode, ProcessActionResult } from '../../../shared/port'
+import { combinePortStatuses, type DisplayPortStatus } from './port-display'
+export type { DisplayPortStatus } from './port-display'
 
 export const DEFAULT_PORTS = [
   3000, 3001, 3002, 4000, 4200, 5173, 4173, 1234, 9229, 80, 443, 3030, 5000, 5005, 8000, 8080, 8081,
@@ -14,13 +16,6 @@ export const SKIP_UNWATCH_CONFIRM_KEY = 'portkill_skip_unwatch_confirm'
 export const THEME_KEY = 'portkill_theme'
 export const LANG_KEY = 'portkill_language'
 export const PAGE_SIZE_KEY = 'portkill_page_size'
-
-export type DisplayPortStatus = {
-  port: number
-  pid?: number
-  name?: string
-  active: boolean
-}
 
 export type ConfirmAction = 'kill' | 'unwatch' | 'batchKill' | 'batchUnwatch'
 
@@ -44,9 +39,9 @@ export function usePortState(): {
   fetchStatus: () => Promise<void>
   handleRestoreDefaults: () => void
   handleAddWatch: (value: string) => void
-  executeKill: (pid: number, force: boolean) => Promise<void>
+  executeKill: (record: DisplayPortStatus, force: boolean) => Promise<void>
   executeUnwatch: (port: number) => void
-  executeBatchKill: (force: boolean) => Promise<void>
+  executeBatchKill: (force: boolean, records?: DisplayPortStatus[]) => Promise<void>
   executeBatchUnwatch: () => void
 } {
   const { t } = useTranslation()
@@ -75,24 +70,20 @@ export function usePortState(): {
   const fetchStatus = useCallback(async () => {
     const requestId = ++latestRequestRef.current
     setLoading(true)
+    let watched: number[] = []
     try {
-      const watched = getPortsToWatch()
+      watched = getPortsToWatch()
       const result = await window.api.getPortStatus(watched)
       if (requestId !== latestRequestRef.current) return
 
-      const combined: DisplayPortStatus[] = watched.map((port) => {
-        const found = result.statuses.find((status) => status.port === port)
-        if (found) {
-          return { ...found, active: true }
-        }
-        return { port, active: false }
-      })
-      combined.sort((a, b) => a.port - b.port)
-      setAllPorts(combined)
+      setAllPorts(combinePortStatuses(watched, result))
       setScanErrorCode(result.errorCode ?? null)
     } catch (error) {
       console.error(error)
-      if (requestId === latestRequestRef.current) setScanErrorCode('SCAN_FAILED')
+      if (requestId === latestRequestRef.current) {
+        setScanErrorCode('SCAN_FAILED')
+        setAllPorts(combinePortStatuses(watched, { statuses: [], errorCode: 'SCAN_FAILED' }))
+      }
     } finally {
       if (requestId === latestRequestRef.current) setLoading(false)
     }
@@ -155,6 +146,16 @@ export function usePortState(): {
           return t('processNotFound')
         case 'FORCE_REQUIRED':
           return t('forceRequiredWindows')
+        case 'TARGET_CHANGED':
+          return t('targetChanged')
+        case 'SCAN_FAILED':
+          return t('scanFailedDescription')
+        case 'COMMAND_TIMEOUT':
+          return t('commandTimeout')
+        case 'EXIT_TIMEOUT':
+          return t('exitTimeout')
+        case 'PORT_STILL_OCCUPIED':
+          return t('portStillOccupied')
         case 'INVALID_REQUEST':
           return t('invalidProcessRequest')
         default:
@@ -164,25 +165,44 @@ export function usePortState(): {
     [t]
   )
 
-  const executeKill = useCallback(
-    async (pid: number, force: boolean) => {
-      const hide = message.loading(t('killingProcess', { pid }), 0)
+  const executeTargets = useCallback(
+    async (records: DisplayPortStatus[], force: boolean) => {
+      const targets = records
+        .filter((record) => record.canKill)
+        .flatMap((record) => record.processes)
+      if (!targets.length || records.some((record) => record.active !== false && !record.canKill)) {
+        message.info(t('noSafeProcessesSelected'))
+        return
+      }
+      const count = new Set(targets.map(({ pid }) => pid)).size
+      const hide = message.loading(t('batchKillingProcess', { count }), 0)
       try {
-        const result = await window.api.killProcess(pid, force)
+        const result = await window.api.killProcess(targets, force)
         if (result.success) {
-          message.success(t('killedSuccess', { pid }))
-          void fetchStatus()
+          message.success(t('batchKillSuccess', { count: result.endedPids?.length ?? count }))
         } else {
-          message.error(getProcessErrorMessage(result))
+          const reason = getProcessErrorMessage(result)
+          message.error(
+            result.endedPids?.length
+              ? t('killPartialFailure', { count: result.endedPids.length, reason })
+              : reason
+          )
         }
       } catch (error) {
-        const detail = error instanceof Error ? error.message : String(error)
-        message.error(t('error', { message: detail }))
+        message.error(
+          t('error', { message: error instanceof Error ? error.message : String(error) })
+        )
       } finally {
         hide()
+        void fetchStatus()
       }
     },
     [fetchStatus, getProcessErrorMessage, t]
+  )
+
+  const executeKill = useCallback(
+    (record: DisplayPortStatus, force: boolean) => executeTargets([record], force),
+    [executeTargets]
   )
 
   const executeUnwatch = useCallback(
@@ -198,57 +218,12 @@ export function usePortState(): {
   )
 
   const executeBatchKill = useCallback(
-    async (force: boolean) => {
-      const uniquePids = [
-        ...new Set(
-          allPorts
-            .filter((port) => selectedRowKeys.includes(port.port) && port.active && port.pid)
-            .map((port) => port.pid as number)
-        )
-      ]
-
-      if (uniquePids.length === 0) {
-        message.info(t('noActiveProcessesSelected'))
-        setSelectedRowKeys([])
-        return
-      }
-
-      const hide = message.loading(t('batchKillingProcess', { count: uniquePids.length }), 0)
-      let successCount = 0
-      const failures: ProcessActionResult[] = []
-
-      for (const pid of uniquePids) {
-        try {
-          const result = await window.api.killProcess(pid, force)
-          if (result.success) successCount += 1
-          else failures.push(result)
-        } catch (error) {
-          failures.push({
-            success: false,
-            errorCode: 'KILL_FAILED',
-            error: error instanceof Error ? error.message : String(error)
-          })
-        }
-      }
-
-      hide()
-      if (failures.length === 0) {
-        message.success(t('batchKillSuccess', { count: successCount }))
-      } else if (successCount === 0) {
-        message.error(
-          t('batchKillFailed', {
-            count: failures.length,
-            reason: getProcessErrorMessage(failures[0])
-          })
-        )
-      } else {
-        message.warning(t('batchKillPartial', { successCount, failedCount: failures.length }))
-      }
-
+    async (force: boolean, records?: DisplayPortStatus[]) => {
+      const snapshot = records ?? allPorts.filter((port) => selectedRowKeys.includes(port.port))
+      await executeTargets(snapshot, force)
       setSelectedRowKeys([])
-      void fetchStatus()
     },
-    [allPorts, fetchStatus, getProcessErrorMessage, selectedRowKeys, t]
+    [allPorts, executeTargets, selectedRowKeys]
   )
 
   const executeBatchUnwatch = useCallback(() => {

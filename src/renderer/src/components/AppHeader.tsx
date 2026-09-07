@@ -89,7 +89,11 @@ export function AppHeader({
           size={4}
         >
           <InfoCircleOutlined style={{ fontSize: 12 }} />
-          <span>{t('searchTip')}</span>
+          <span>
+            {t('searchTip')}
+            <br />
+            {t('tcpScope')}
+          </span>
         </Space>
       </div>
     </Header>

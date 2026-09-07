@@ -1,5 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { PortScanResult, ProcessActionResult } from '../shared/port'
+import type { PortScanResult, ProcessActionResult, ProcessTarget } from '../shared/port'
 import type { UpdateActionResult, UpdateState } from '../shared/update'
 import type { CloseBehavior } from '../shared/close-behavior'
 
@@ -8,7 +8,7 @@ declare global {
     electron: ElectronAPI
     api: {
       getPortStatus: (ports: number[]) => Promise<PortScanResult>
-      killProcess: (pid: number, force: boolean) => Promise<ProcessActionResult>
+      killProcess: (targets: ProcessTarget[], force: boolean) => Promise<ProcessActionResult>
       getUpdateState: () => Promise<UpdateState>
       checkForUpdates: () => Promise<UpdateActionResult>
       downloadUpdate: () => Promise<UpdateActionResult>
