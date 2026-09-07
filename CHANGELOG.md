@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/bosens-China/PortKill/compare/v1.5.0...v1.5.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* 修复跨平台端口检测与进程查杀 ([8b1130b](https://github.com/bosens-China/PortKill/commit/8b1130b918a1617f073772d580de972618edc395))
+
 ## [1.5.0](https://github.com/bosens-China/PortKill/compare/v1.4.0...v1.5.0) (2026-08-21)
 
 
